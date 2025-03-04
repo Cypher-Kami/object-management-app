@@ -34,7 +34,7 @@ const ObjectProvider: React.FC<{children: React.ReactNode}> = ({ children }) => 
               if (newObject.relatedObjectIds.includes(obj.id)) {
                   return {
                       ...obj,
-                      relatedObjectIds: Array.from(new Set([...obj.relatedObjectIds, newObject.id])), // 🔥 Convierte `Set` a `Array`
+                      relatedObjectIds: Array.from(new Set([...obj.relatedObjectIds, newObject.id])),
                   };
               }
               return obj;
@@ -57,7 +57,7 @@ const ObjectProvider: React.FC<{children: React.ReactNode}> = ({ children }) => 
                   return { ...obj, ...updatedData };
               }
   
-              // Si el objeto editado tenía una relación, actualizar el otro objeto también
+              // If the updated object has a new relation, update the related object as well
               if (updatedData.relatedObjectIds?.includes(obj.id)) {
                   return {
                       ...obj,
@@ -65,7 +65,7 @@ const ObjectProvider: React.FC<{children: React.ReactNode}> = ({ children }) => 
                   };
               }
   
-              // Si el objeto editado ya no tiene una relación con otro objeto, eliminar la relación en el otro objeto
+              // If the relation was removed from the updated object, remove it from the related object too
               if (obj.relatedObjectIds.includes(id) && !updatedData.relatedObjectIds?.includes(obj.id)) {
                   return {
                       ...obj,
