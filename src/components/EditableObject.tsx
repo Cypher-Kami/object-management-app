@@ -12,6 +12,12 @@ const EditableObject: React.FC<EditableObjectProps> = ({ object, updateObject, d
     const [selectedRelatedObjects, setSelectedRelatedObjects] = React.useState<number[]>(object.relatedObjectIds || []);
 
     /**
+     * Synchronizes the selected related objects when managedObjects change.
+     */
+    React.useEffect(() => {
+        setSelectedRelatedObjects(object.relatedObjectIds || []);
+    }, [object.relatedObjectIds, managedObjects]);
+    /**
      * Handles input changes for the object properties.
      */
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,9 +35,46 @@ const EditableObject: React.FC<EditableObjectProps> = ({ object, updateObject, d
      * Saves the updated object details and exits edit mode.
      */
     const handleSave = () => {
+        // Retrieve the original and updated related object sets
+        const previousRelatedObjects = new Set(object.relatedObjectIds);
+        const newRelatedObjects = new Set(selectedRelatedObjects);
+    
+        // Identify removed relationships (previously related but now removed)
+        const removedRelations = Array.from(previousRelatedObjects).filter(
+            (id) => !newRelatedObjects.has(id)
+        );
+    
+        // Identify newly added relationships (new selections that were not previously related)
+        const addedRelations = Array.from(newRelatedObjects).filter(
+            (id) => !previousRelatedObjects.has(id)
+        );
+    
+        // Update the edited object with the new relationships
         updateObject(object.id, { ...formData, relatedObjectIds: selectedRelatedObjects });
+    
+        // Ensure bidirectional relationships: update related objects to include this object
+        addedRelations.forEach((relatedId) => {
+            const relatedObj = managedObjects.find((obj) => obj.id === relatedId);
+            if (relatedObj && !relatedObj.relatedObjectIds.includes(object.id)) {
+                updateObject(relatedId, {
+                    relatedObjectIds: [...relatedObj.relatedObjectIds, object.id],
+                });
+            }
+        });
+    
+        // Remove this object from relationships that were removed
+        removedRelations.forEach((removedId) => {
+            const relatedObj = managedObjects.find((obj) => obj.id === removedId);
+            if (relatedObj) {
+                updateObject(removedId, {
+                    relatedObjectIds: relatedObj.relatedObjectIds.filter((id) => id !== object.id),
+                });
+            }
+        });
+    
         setIsEditing(false);
-    };
+    };    
+    
 
     return (
         <li className="list-group-item d-flex justify-content-between align-items-center">

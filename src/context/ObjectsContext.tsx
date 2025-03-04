@@ -24,25 +24,86 @@ const ObjectProvider: React.FC<{children: React.ReactNode}> = ({ children }) => 
      * Adds a new object to the system.
      */
     const saveObject = (managedObject: ManagedObject) => {
-      setManagedObjects(prev => [...prev, managedObject]);
-      setFilteredObjects(prev => [...prev, managedObject]);
-    };
+      setManagedObjects(prevObjects => {
+          const newObject = {
+              ...managedObject,
+              relatedObjectIds: [...managedObject.relatedObjectIds],
+          };
+  
+          const updatedObjects = prevObjects.map(obj => {
+              if (newObject.relatedObjectIds.includes(obj.id)) {
+                  return {
+                      ...obj,
+                      relatedObjectIds: Array.from(new Set([...obj.relatedObjectIds, newObject.id])), // 🔥 Convierte `Set` a `Array`
+                  };
+              }
+              return obj;
+          });
+  
+          return [...updatedObjects, newObject];
+      });
+  
+      setFilteredObjects(prevObjects => [...prevObjects, managedObject]);
+  };  
+  
 
     /**
      * Updates an existing object by merging new data.
      */
     const updateObject = (id: number, updatedData: Partial<ManagedObject>) => {
-      setManagedObjects(prev => prev.map(obj => (obj.id === id ? { ...obj, ...updatedData } : obj)));
-      setFilteredObjects(prev => prev.map(obj => (obj.id === id ? { ...obj, ...updatedData } : obj)));
-    };
+      setManagedObjects((prevObjects) => {
+          return prevObjects.map((obj) => {
+              if (obj.id === id) {
+                  return { ...obj, ...updatedData };
+              }
+  
+              // Si el objeto editado tenía una relación, actualizar el otro objeto también
+              if (updatedData.relatedObjectIds?.includes(obj.id)) {
+                  return {
+                      ...obj,
+                      relatedObjectIds: Array.from(new Set([...obj.relatedObjectIds, id])),
+                  };
+              }
+  
+              // Si el objeto editado ya no tiene una relación con otro objeto, eliminar la relación en el otro objeto
+              if (obj.relatedObjectIds.includes(id) && !updatedData.relatedObjectIds?.includes(obj.id)) {
+                  return {
+                      ...obj,
+                      relatedObjectIds: obj.relatedObjectIds.filter((relId) => relId !== id),
+                  };
+              }
+  
+              return obj;
+          });
+      });
+  
+      setFilteredObjects((prevObjects) =>
+          prevObjects.map((obj) => (obj.id === id ? { ...obj, ...updatedData } : obj))
+      );
+  };  
 
     /**
      * Deletes an object from the system.
      */
     const deleteObject = (id: number) => {
-      setManagedObjects(prev => prev.filter(obj => obj.id !== id));
-      setFilteredObjects(prev => prev.filter(obj => obj.id !== id));
-    };
+      setManagedObjects((prevObjects) =>
+          prevObjects
+              .filter((obj) => obj.id !== id)
+              .map((obj) => ({
+                  ...obj,
+                  relatedObjectIds: obj.relatedObjectIds.filter((relId) => relId !== id),
+              }))
+      );
+  
+      setFilteredObjects((prevObjects) =>
+          prevObjects
+              .filter((obj) => obj.id !== id)
+              .map((obj) => ({
+                  ...obj,
+                  relatedObjectIds: obj.relatedObjectIds.filter((relId) => relId !== id),
+              }))
+      );
+  };  
 
     /**
      * Filters objects based on a search query (by name or description).
